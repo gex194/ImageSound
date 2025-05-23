@@ -1,38 +1,51 @@
 ﻿using System;
+using System.Threading.Tasks;
 using NAudio.Wave;
 
 namespace ImageSound.Services.SoundProcessingService;
 
 public class SoundProcessingService : ISoundProcessingService
 {
-    public SoundProcessingService() {}
+    private string OutputFilePath { get; set; }
+    private string InputFilePath { get; set; }
+    public WaveOutEvent OutputDevice { get; set; }
+    private AudioFileReader _audioFileReader;
+
+    public SoundProcessingService()
+    {
+        InputFilePath = "input.wav";
+        OutputFilePath = "output.wav";
+    }
     
     public void GenerateSound(float[] brightnessArray)
     {
-        string outputFilePath = "output.wav";
-
+        StopWavFile();
+        
         int sampleRate = 44100;
-        int channels = 1;
+        int channels = 2;
         int durationSeconds = 10;
-
+        float pitchFactor = 1.2f;
+        
         float[] buffer = new float[sampleRate * channels];
 
-        using (var waveFileWriter = new WaveFileWriter(outputFilePath, new WaveFormat(sampleRate, 16, channels)))
+        using (var waveFileWriter = new WaveFileWriter(OutputFilePath, new WaveFormat(sampleRate, 16, channels)))
         {
             for (int second = 0; second < durationSeconds; second++)
             {
-                float frequency = 440.0f + (brightnessArray[second] * 500f);
-                GenerateSineWave(buffer, sampleRate, amplitude: 1.5f * brightnessArray[second]);
+                float frequency = 100.0f + (brightnessArray[second] * 500f);
+                pitchFactor *= brightnessArray[second];
+                GenerateSineWave(buffer, sampleRate, amplitude: 5.0f * brightnessArray[second], frequency);
 
                 // Write the buffer to the WAV file
+                
                 WriteBufferToWaveFile(waveFileWriter, buffer);
             }
         }
         
-        PlayWavFile(outputFilePath);
+        PlayWavFile(OutputFilePath);
     }
     
-    public void GenerateSineWave(float[] buffer, int sampleRate, float amplitude, float startFrequency = 440.0f, float endFrequency = 8000.0f)
+    public void GenerateSineWave(float[] buffer, int sampleRate, float amplitude, float startFrequency = 440.0f, float endFrequency = 2000.0f)
     {
         float frequencyStep = (endFrequency - startFrequency) / buffer.Length;
         float currentFrequency = startFrequency;
@@ -58,20 +71,32 @@ public class SoundProcessingService : ISoundProcessingService
         }
     }
     
-    public void PlayWavFile(string filePath)
+    public async void PlayWavFile(string filePath)
     {
-        using (var audioFileReader = new AudioFileReader(filePath))
-        using (var outputDevice = new WaveOutEvent())
+        await Task.Run(() =>
         {
-            outputDevice.Init(audioFileReader);
-            outputDevice.Volume = 0.2f;
-            outputDevice.Play();
-
-            // Wait for playback to finish
-            while (outputDevice.PlaybackState == PlaybackState.Playing)
+            try
             {
-                System.Threading.Thread.Sleep(10);
+                _audioFileReader = new AudioFileReader(filePath);
+                OutputDevice = new WaveOutEvent();
+                OutputDevice.Init(_audioFileReader);
+                OutputDevice.Volume = 0.2f;
+                OutputDevice.Play();
+                while (OutputDevice.PlaybackState == PlaybackState.Playing)
+                {
+                    Task.Delay(100).Wait(); // Small delay to prevent busy-waiting
+                }
+            } catch (Exception e)
+            {
+                Console.WriteLine(e);
             }
-        }
+        });
+    }
+
+    public void StopWavFile()
+    {
+        OutputDevice?.Stop();
+        OutputDevice?.Dispose();
+        _audioFileReader?.Dispose();
     }
 }

@@ -8,9 +8,8 @@
         x:Class="ImageSound.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="ImageSound"
-        Width="1024"
-        Height="720">
+        SizeToContent="WidthAndHeight"
+        Title="ImageSound">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,

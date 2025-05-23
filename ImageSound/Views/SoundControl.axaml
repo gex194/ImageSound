@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ImageSound.Views.SoundControl">
-    <StackPanel>
-        <Button Content="Test" Click="OnButtonClick" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Button Name="PlayButton" Content="Play" Margin="10" Width="100" Click="OnButtonClick" />
+        <Button Name="StopButton" Content="Stop" Margin="10" Width="100" Click="OnSoundStop" />
     </StackPanel>
 </UserControl>

@@ -6,7 +6,7 @@
              x:Class="ImageSound.Views.ImageUploadView">
     <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
         <Image Name="PreviewImage" MinWidth="500" MaxWidth="600" Height="400" Stretch="Uniform" />
-        <Button Name="UploadButton" Content="Upload Image" Margin="5" Background="CornflowerBlue" CornerRadius="5"
+        <Button Name="UploadButton" Content="Upload Image" HorizontalAlignment="Center" Margin="5" Background="CornflowerBlue" CornerRadius="5"
                 Click="OnUpload" />
     </StackPanel>
 </UserControl>

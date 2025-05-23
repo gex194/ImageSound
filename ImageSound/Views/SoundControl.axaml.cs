@@ -11,8 +11,8 @@ namespace ImageSound.Views;
 
 public partial class SoundControl : UserControl
 {
-    private Image<Rgba32> image { get; set; }
-    private string? imagePath { get; set; }
+    private Image<Rgba32> Image { get; set; }
+    private string? ImagePath { get; set; }
     private ISoundProcessingService SoundProcessingService { get; set; }
     private IImageProcessingService ImageProcessingService { get; set; }
     public SoundControl()
@@ -27,11 +27,21 @@ public partial class SoundControl : UserControl
     {
         if (DataContext is SharedViewModel sharedViewModel)
         {
-            image = sharedViewModel.Image;
-            imagePath = sharedViewModel.ImagePath;
-            var brightnessMatrix = ImageProcessingService.ProcessImage(imagePath);
+            if (sharedViewModel.ImagePath == null)
+            {
+                return;
+            }
+            Image = sharedViewModel.Image;
+            ImagePath = sharedViewModel.ImagePath;
+            var brightnessMatrix = ImageProcessingService.ProcessImage(ImagePath);
             var averageBrightnessArray = ImageProcessingService.GetAverageBrightnessArray(brightnessMatrix);
             SoundProcessingService.GenerateSound(averageBrightnessArray.ToArray());
         }
+    }
+
+    public void OnSoundStop(object? sender, RoutedEventArgs e)
+    {
+        SoundProcessingService.StopWavFile();
+        PlayButton.IsEnabled = true;
     }
 }
