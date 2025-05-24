@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 namespace ImageSound.Services.SoundProcessingService;
 
@@ -10,10 +11,11 @@ public class SoundProcessingService : ISoundProcessingService
     private string InputFilePath { get; set; }
     public WaveOutEvent OutputDevice { get; set; }
     private AudioFileReader _audioFileReader;
+    private MediaFoundationReader _mediaFoundationReader;
 
     public SoundProcessingService()
     {
-        InputFilePath = "input.wav";
+        InputFilePath = @"D:\Projects\C_sharp\ImageSound\ImageSound\input.wav";
         OutputFilePath = "output.wav";
     }
     
@@ -23,8 +25,7 @@ public class SoundProcessingService : ISoundProcessingService
         
         int sampleRate = 44100;
         int channels = 2;
-        int durationSeconds = 10;
-        float pitchFactor = 1.2f;
+        int durationSeconds = brightnessArray.Length;
         
         float[] buffer = new float[sampleRate * channels];
 
@@ -32,9 +33,8 @@ public class SoundProcessingService : ISoundProcessingService
         {
             for (int second = 0; second < durationSeconds; second++)
             {
-                float frequency = 100.0f + (brightnessArray[second] * 500f);
-                pitchFactor *= brightnessArray[second];
-                GenerateSineWave(buffer, sampleRate, amplitude: 5.0f * brightnessArray[second], frequency);
+                float frequency = 200.0f + (brightnessArray[second] * 400f);
+                GenerateSineWave(buffer, sampleRate, amplitude: 15.0f * brightnessArray[second], frequency);
 
                 // Write the buffer to the WAV file
                 
@@ -43,6 +43,40 @@ public class SoundProcessingService : ISoundProcessingService
         }
         
         PlayWavFile(OutputFilePath);
+    }
+
+    public async void ModifySound(float[] brightnessArray)
+    {
+        int durationSeconds = brightnessArray.Length;
+
+        var reader = new MediaFoundationReader(InputFilePath);
+        var pitch = new SmbPitchShiftingSampleProvider(reader.ToSampleProvider());
+        OutputDevice = new WaveOutEvent();
+        var index = 0;
+
+        await Task.Run(() =>
+        {
+            OutputDevice.Init(pitch);
+            OutputDevice.Play();
+
+            while (index < durationSeconds)
+            {
+                if (reader.CurrentTime >= reader.TotalTime / 6d)
+                {
+                    reader.Position = 0;
+                }
+                
+                Task.Delay(100).Wait(); // Small delay to prevent busy-waiting
+                index++;
+            }
+
+            _mediaFoundationReader = reader;
+            
+            while (OutputDevice.PlaybackState == PlaybackState.Playing)
+            {
+                Task.Delay(10).Wait(); // Small delay to prevent busy-waiting
+            }
+        });
     }
     
     public void GenerateSineWave(float[] buffer, int sampleRate, float amplitude, float startFrequency = 440.0f, float endFrequency = 2000.0f)
@@ -53,7 +87,7 @@ public class SoundProcessingService : ISoundProcessingService
         for (int i = 0; i < buffer.Length; i++)
         {
             float time = i / (float)sampleRate; // Time in seconds
-            buffer[i] = amplitude * (float)Math.Sin(2 * Math.PI * currentFrequency * time);
+            buffer[i] = amplitude * (float)Math.Sin(2 * Math.PI * startFrequency * time);
             currentFrequency += frequencyStep;
         }
     }
@@ -71,7 +105,7 @@ public class SoundProcessingService : ISoundProcessingService
         }
     }
     
-    public async void PlayWavFile(string filePath)
+    public async void PlayWavFile(string? filePath)
     {
         await Task.Run(() =>
         {
@@ -84,7 +118,7 @@ public class SoundProcessingService : ISoundProcessingService
                 OutputDevice.Play();
                 while (OutputDevice.PlaybackState == PlaybackState.Playing)
                 {
-                    Task.Delay(100).Wait(); // Small delay to prevent busy-waiting
+                    Task.Delay(50).Wait(); // Small delay to prevent busy-waiting
                 }
             } catch (Exception e)
             {

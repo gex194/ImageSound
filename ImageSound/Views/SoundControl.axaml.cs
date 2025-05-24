@@ -35,7 +35,8 @@ public partial class SoundControl : UserControl
             ImagePath = sharedViewModel.ImagePath;
             var brightnessMatrix = ImageProcessingService.ProcessImage(ImagePath);
             var averageBrightnessArray = ImageProcessingService.GetAverageBrightnessArray(brightnessMatrix);
-            SoundProcessingService.GenerateSound(averageBrightnessArray.ToArray());
+            // SoundProcessingService.GenerateSound(averageBrightnessArray.ToArray());
+            SoundProcessingService.ModifySound(averageBrightnessArray.ToArray());
         }
     }
 

@@ -12,5 +12,6 @@ public interface ISoundProcessingService
     public void WriteBufferToWaveFile(WaveFileWriter writer, float[] buffer);
     public void PlayWavFile(string? outputFilePath);
     public void GenerateSound(float[] brightnessArray);
+    public void ModifySound(float[] brightnessArray);
     public void StopWavFile();
 }
