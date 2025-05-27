@@ -10,6 +10,7 @@ public interface ISoundProcessingService
         float endFrequency = 8000.0f);
 
     public void WriteBufferToWaveFile(WaveFileWriter writer, float[] buffer);
+    public void SetInputFilePath(string inputFilePath);
     public void PlayWavFile(string? outputFilePath);
     public void GenerateSound(float[] brightnessArray);
     public void ModifySound(float[] brightnessArray);

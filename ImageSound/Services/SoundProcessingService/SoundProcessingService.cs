@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using ImageSound.ViewModels;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
@@ -7,9 +8,9 @@ namespace ImageSound.Services.SoundProcessingService;
 
 public class SoundProcessingService : ISoundProcessingService
 {
+    public WaveOutEvent OutputDevice { get; set; }
     private string OutputFilePath { get; set; }
     private string InputFilePath { get; set; }
-    public WaveOutEvent OutputDevice { get; set; }
     private AudioFileReader _audioFileReader;
     private MediaFoundationReader _mediaFoundationReader;
 
@@ -17,6 +18,11 @@ public class SoundProcessingService : ISoundProcessingService
     {
         InputFilePath = @"D:\Projects\C_sharp\ImageSound\ImageSound\input.wav";
         OutputFilePath = "output.wav";
+    }
+
+    public void SetInputFilePath(string inputFilePath)
+    {
+        InputFilePath = inputFilePath;
     }
     
     public void GenerateSound(float[] brightnessArray)
@@ -61,9 +67,10 @@ public class SoundProcessingService : ISoundProcessingService
 
             while (index < durationSeconds)
             {
-                if (reader.CurrentTime >= reader.TotalTime / 6d)
+                if (reader.CurrentTime >= reader.TotalTime / (Math.Abs(brightnessArray[index]) * 20d))
                 {
                     reader.Position = 0;
+                    pitch.PitchFactor += brightnessArray[index] * 0.01f;
                 }
                 
                 Task.Delay(100).Wait(); // Small delay to prevent busy-waiting

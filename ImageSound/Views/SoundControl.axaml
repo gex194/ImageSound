@@ -5,6 +5,11 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ImageSound.Views.SoundControl">
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <ComboBox Name="SoundType" SelectedIndex="0" Margin="10" Width="250" SelectionChanged="OnSelectionChanged">
+            <ComboBoxItem>Generate Empty Sound</ComboBoxItem>
+            <ComboBoxItem>Use Existing Sound</ComboBoxItem>
+        </ComboBox>
+        <Button Name="WavInputFile" IsVisible="False" Margin="10" Click="OnWavFileUploadButtonClick">Choose a .wav file</Button>
         <Button Name="PlayButton" Content="Play" Margin="10" Width="100" Click="OnButtonClick" />
         <Button Name="StopButton" Content="Stop" Margin="10" Width="100" Click="OnSoundStop" />
     </StackPanel>

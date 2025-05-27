@@ -1,5 +1,9 @@
-﻿using Avalonia.Controls;
+﻿using System;
+using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
+using ImageSound.Enums;
+using ImageSound.Extensions;
 using ImageSound.Services;
 using ImageSound.Services.ImageProcessingService;
 using ImageSound.Services.SoundProcessingService;
@@ -35,8 +39,47 @@ public partial class SoundControl : UserControl
             ImagePath = sharedViewModel.ImagePath;
             var brightnessMatrix = ImageProcessingService.ProcessImage(ImagePath);
             var averageBrightnessArray = ImageProcessingService.GetAverageBrightnessArray(brightnessMatrix);
-            // SoundProcessingService.GenerateSound(averageBrightnessArray.ToArray());
-            SoundProcessingService.ModifySound(averageBrightnessArray.ToArray());
+            switch (SoundType.SelectedIndex)
+            {
+                case (int)SoundTypes.GenerateSound:
+                    SoundProcessingService.GenerateSound(averageBrightnessArray.ToArray());
+                    break;
+                case (int)SoundTypes.ModifySound:
+                    SoundProcessingService.ModifySound(averageBrightnessArray.ToArray());
+                    break;
+            }
+        }
+    }
+
+    public async void OnWavFileUploadButtonClick(object? sender, RoutedEventArgs e)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        var filePickerOptions = new FilePickerOpenOptions
+        {
+            Title = "Choose a .wav file",
+            FileTypeFilter = [FilePickerFileTypesExtension.SoundWav],
+            AllowMultiple = false
+        };
+
+        if (topLevel == null)
+        {
+            return;
+        }
+        
+        var file = await topLevel?.StorageProvider?.OpenFilePickerAsync(filePickerOptions);
+        if (DataContext is SharedViewModel sharedViewModel)
+        {
+            sharedViewModel.BrightnessWavFilePath = file[0].Path.LocalPath;
+            WavInputFile.Content = file[0].Name;
+            SoundProcessingService.SetInputFilePath(file[0].Path.LocalPath);
+        }
+    }
+
+    public void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (WavInputFile != null && SoundType != null)
+        {
+            WavInputFile.IsVisible = SoundType.SelectedIndex == (int)SoundTypes.ModifySound;
         }
     }
 

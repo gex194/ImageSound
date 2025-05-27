@@ -31,7 +31,6 @@ public partial class ImageUploadView : UserControl
         if (topLevel == null)
         {
             return;
-            
         }
         var file = await topLevel.StorageProvider.OpenFilePickerAsync(filePickerOptions);
         

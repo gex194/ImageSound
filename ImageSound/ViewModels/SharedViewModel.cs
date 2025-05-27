@@ -7,4 +7,5 @@ public class SharedViewModel : ViewModelBase
 {
     public Image<Rgba32> Image { get; set; }
     public string? ImagePath { get; set; }
+    public string? BrightnessWavFilePath { get; set; }
 }
