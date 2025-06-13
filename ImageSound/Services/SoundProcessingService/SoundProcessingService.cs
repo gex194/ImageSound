@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using ImageSound.ViewModels;
+using ImageSound.Extensions;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
@@ -8,11 +8,10 @@ namespace ImageSound.Services.SoundProcessingService;
 
 public class SoundProcessingService : ISoundProcessingService
 {
-    public WaveOutEvent OutputDevice { get; set; }
+    public WaveOutEvent? OutputDevice { get; set; }
     private string OutputFilePath { get; set; }
     private string InputFilePath { get; set; }
-    private AudioFileReader _audioFileReader;
-    private MediaFoundationReader _mediaFoundationReader;
+    private AudioFileReader? _audioFileReader;
 
     public SoundProcessingService()
     {
@@ -43,48 +42,83 @@ public class SoundProcessingService : ISoundProcessingService
                 GenerateSineWave(buffer, sampleRate, amplitude: 15.0f * brightnessArray[second], frequency);
 
                 // Write the buffer to the WAV file
-                
                 WriteBufferToWaveFile(waveFileWriter, buffer);
             }
         }
         
         PlayWavFile(OutputFilePath);
     }
+    
+public async void ModifySound(float[] brightnessArray, int totalDurationSeconds, float segmentLengthSeconds)
+{
+    StopWavFile();
 
-    public async void ModifySound(float[] brightnessArray)
+    using var reader = new WaveFileReader(InputFilePath);
+    var sampleProvider = reader.ToSampleProvider();
+    OutputDevice = new WaveOutEvent();
+    
+    // Calculate buffer sizes
+    int sampleRate = sampleProvider.WaveFormat.SampleRate;
+    int channels = sampleProvider.WaveFormat.Channels;
+    int totalSamplesNeeded = sampleRate * channels * totalDurationSeconds;
+    int segmentSamples = (int)(sampleRate * channels * segmentLengthSeconds);
+    
+    // Create buffers
+    var outputBuffer = new float[totalSamplesNeeded];
+    var segmentBuffer = new float[segmentSamples];
+    
+    OutputFilePath = DateTime.Now.ToString("yyyy_MM_dd_HHmmss") + "_modify_output.wav";
+    
+    await Task.Run(() =>
     {
-        int durationSeconds = brightnessArray.Length;
+        using var writer = new WaveFileWriter(OutputFilePath, sampleProvider.WaveFormat);
 
-        var reader = new MediaFoundationReader(InputFilePath);
-        var pitch = new SmbPitchShiftingSampleProvider(reader.ToSampleProvider());
-        OutputDevice = new WaveOutEvent();
-        var index = 0;
-
-        await Task.Run(() =>
+        // Read the segment we'll be repeating
+        int samplesRead = sampleProvider.Read(segmentBuffer, 0, segmentSamples);
+        
+        if (samplesRead > 0)
         {
-            OutputDevice.Init(pitch);
-            OutputDevice.Play();
-
-            while (index < durationSeconds)
+            // If we read less than requested, adjust segment size
+            if (samplesRead < segmentSamples)
             {
-                if (reader.CurrentTime >= reader.TotalTime / (Math.Abs(brightnessArray[index]) * 20d))
-                {
-                    reader.Position = 0;
-                    pitch.PitchFactor += brightnessArray[index] * 0.01f;
-                }
-                
-                Task.Delay(100).Wait(); // Small delay to prevent busy-waiting
-                index++;
+                segmentSamples = samplesRead;
+                Array.Resize(ref segmentBuffer, segmentSamples);
             }
 
-            _mediaFoundationReader = reader;
-            
-            while (OutputDevice.PlaybackState == PlaybackState.Playing)
+            // Fill the output buffer by repeating the segment
+            int position = 0;
+            while (position < totalSamplesNeeded)
             {
-                Task.Delay(10).Wait(); // Small delay to prevent busy-waiting
+                int samplesToWrite = Math.Min(segmentSamples, totalSamplesNeeded - position);
+                Array.Copy(segmentBuffer, 0, outputBuffer, position, samplesToWrite);
+                position += samplesToWrite;
             }
-        });
-    }
+
+            // Process the entire buffer with pitch changes
+            var processedBuffer = new float[totalSamplesNeeded];
+            Array.Copy(outputBuffer, processedBuffer, totalSamplesNeeded);
+
+            // Apply pitch changes for each second
+            for (int second = 0; second < totalDurationSeconds && second < brightnessArray.Length; second++)
+            {
+                int startSample = second * sampleRate * channels;
+                int endSample = Math.Min((second + 1) * sampleRate * channels, totalSamplesNeeded);
+                float pitchFactor = 0.25f + (brightnessArray[second] * 3.75f);
+
+                var floatProvider = new FloatArraySampleProvider(
+                    outputBuffer, sampleProvider.WaveFormat.Channels);
+                var pitchShifter = new SmbPitchShiftingSampleProvider(floatProvider);
+                pitchShifter.PitchFactor = pitchFactor;
+
+                pitchShifter.Read(processedBuffer, startSample, endSample - startSample);
+            }
+
+            writer.WriteSamples(processedBuffer, 0, totalSamplesNeeded);
+        }
+        
+        PlayWavFile(OutputFilePath);
+    });
+}
     
     public void GenerateSineWave(float[] buffer, int sampleRate, float amplitude, float startFrequency = 440.0f, float endFrequency = 2000.0f)
     {
@@ -104,11 +138,14 @@ public class SoundProcessingService : ISoundProcessingService
         foreach (var sample in buffer)
         {
             // Clip to [-1, 1] range
-            float clippedSample = Math.Max(-1.0f, Math.Min(1.0f, sample));
-
+            float clippedSample = sample;
+            
             // Scale to 16-bit range and write
             short pcmSample = (short)(clippedSample * short.MaxValue);
-            writer.WriteSample(pcmSample);
+            if (pcmSample > 0)
+            {
+                writer.WriteSample(sample);
+            }
         }
     }
     

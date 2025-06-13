@@ -13,6 +13,6 @@ public interface ISoundProcessingService
     public void SetInputFilePath(string inputFilePath);
     public void PlayWavFile(string? outputFilePath);
     public void GenerateSound(float[] brightnessArray);
-    public void ModifySound(float[] brightnessArray);
+    public void ModifySound(float[] brightnessArray, int totalDurationSeconds, float segmentLengthSeconds);
     public void StopWavFile();
 }

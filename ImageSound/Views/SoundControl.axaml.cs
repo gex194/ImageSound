@@ -44,8 +44,8 @@ public partial class SoundControl : UserControl
                 case (int)SoundTypes.GenerateSound:
                     SoundProcessingService.GenerateSound(averageBrightnessArray.ToArray());
                     break;
-                case (int)SoundTypes.ModifySound:
-                    SoundProcessingService.ModifySound(averageBrightnessArray.ToArray());
+                case (int)SoundTypes.ModifySound: 
+                    SoundProcessingService.ModifySound(averageBrightnessArray.ToArray(), 10, 0.5f);
                     break;
             }
         }
